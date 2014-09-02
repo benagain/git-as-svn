@@ -39,6 +39,7 @@ dependencies {
   compile "org.atteo.classindex:classindex:3.1"
   compile "org.mapdb:mapdb:1.0.6"
 
+  compile "org.apache.directory.api:api-ldap-extras-codec:1.0.0-M23"
   testCompile "org.apache.directory.server:apacheds-protocol-ldap:2.0.0-M17"
   testCompile "org.apache.directory.api:api-ldap-codec-standalone:1.0.0-M23"
   testCompile "org.testng:testng:6.8.8"

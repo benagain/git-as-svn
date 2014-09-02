@@ -5,45 +5,47 @@
  * including this file, may be copied, modified, propagated, or distributed
  * except according to the terms contained in the LICENSE file.
  */
-package svnserver.auth;
+package svnserver.auth.ldap;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmatesoft.svn.core.SVNException;
-import svnserver.StringHelper;
+import svnserver.auth.Authenticator;
+import svnserver.auth.User;
+import svnserver.config.LDAPUserDBConfig;
 import svnserver.parser.SvnServerParser;
 import svnserver.parser.SvnServerWriter;
 
+import javax.naming.Context;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.Hashtable;
 
 /**
  * @author Marat Radchenko <marat@slonopotamus.org>
  */
-public final class PlainAuthenticator implements Authenticator {
+public final class ProxyDigestMD5Authenticator implements Authenticator {
 
   @NotNull
-  private final PasswordChecker passwordChecker;
+  private final LDAPUserDBConfig config;
 
-  public PlainAuthenticator(@NotNull PasswordChecker passwordChecker) {
-    this.passwordChecker = passwordChecker;
+  public ProxyDigestMD5Authenticator(@NotNull LDAPUserDBConfig config) {
+    this.config = config;
+    ProxyDigestMD5SaslClientFactory.init();
   }
 
   @NotNull
   @Override
   public String getMethodName() {
-    return "PLAIN";
+    return ProxyDigestMD5SaslClient.realAuthMethod;
   }
 
   @Nullable
   @Override
   public User authenticate(@NotNull SvnServerParser parser, @NotNull SvnServerWriter writer, @NotNull String token) throws IOException, SVNException {
-    final String[] credentials = new String(StringHelper.fromBase64(token), StandardCharsets.US_ASCII).split("\u0000");
-    if (credentials.length < 3)
-      return null;
-
-    final String username = credentials[1];
-    final String password = credentials[2];
-    return passwordChecker.check(username, password);
+    final Hashtable<String, Object> env = new Hashtable<>();
+    env.put(SvnServerParser.class.getName(), parser);
+    env.put(SvnServerWriter.class.getName(), writer);
+    env.put(Context.SECURITY_AUTHENTICATION, ProxyDigestMD5SaslClientFactory.proxyAuthMethod);
+    return LDAPHelper.bind(config, env);
   }
 }

@@ -94,6 +94,7 @@ public final class SvnTestServer implements AutoCloseable {
 
     final Config config = new Config(BIND_HOST, 0);
     config.setCacheConfig(new MemoryCacheConfig());
+    config.setRealm("example.com");
     config.setRepositoryMapping(new TestRepositoryConfig(repository, testBranch, prefix));
     if (userDBConfig != null) {
       config.setUserDB(userDBConfig);

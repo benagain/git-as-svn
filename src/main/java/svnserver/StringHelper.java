@@ -9,7 +9,10 @@ package svnserver;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.tmatesoft.svn.core.internal.util.SVNBase64;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
@@ -86,5 +89,33 @@ public final class StringHelper {
   public static boolean isParentPath(@NotNull String parentPath, @NotNull String childPath) {
     return childPath.equals(parentPath)
         || childPath.startsWith(parentPath) && (childPath.charAt(parentPath.length()) == '/');
+  }
+
+  /**
+   * Taken from {@link org.tmatesoft.svn.core.internal.io.svn.sasl.SVNSaslAuthenticator#fromBase64(String)}.
+   */
+  public static byte[] fromBase64(@Nullable String src) {
+    if (src == null) {
+      return new byte[0];
+    }
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    for (int i = 0; i < src.length(); i++) {
+      char ch = src.charAt(i);
+      if (!Character.isWhitespace(ch) && ch != '\n' && ch != '\r') {
+        bos.write((byte) ch & 0xFF);
+      }
+    }
+    byte[] cbytes = new byte[src.length()];
+    src = new String(bos.toByteArray(), StandardCharsets.US_ASCII);
+    int clength = SVNBase64.base64ToByteArray(new StringBuffer(src), cbytes);
+    byte[] result = new byte[clength];
+    // strip trailing -1s.
+    for (int i = clength - 1; i >= 0; i--) {
+      if (i == -1) {
+        clength--;
+      }
+    }
+    System.arraycopy(cbytes, 0, result, 0, clength);
+    return result;
   }
 }

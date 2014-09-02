@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 public final class Config {
   @NotNull
   private String host = "0.0.0.0";
+
   @NotNull
   private String realm = "";
 
@@ -63,6 +64,10 @@ public final class Config {
   @NotNull
   public String getRealm() {
     return realm;
+  }
+
+  public void setRealm(@NotNull String realm) {
+    this.realm = realm;
   }
 
   @NotNull

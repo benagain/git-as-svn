@@ -8,8 +8,14 @@
 package svnserver.config;
 
 import org.jetbrains.annotations.NotNull;
-import svnserver.auth.LDAPUserDB;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import svnserver.auth.Authenticator;
+import svnserver.auth.PasswordChecker;
+import svnserver.auth.PlainAuthenticator;
 import svnserver.auth.UserDB;
+import svnserver.auth.ldap.LDAPUserDB;
+import svnserver.auth.ldap.ProxyDigestMD5Authenticator;
 import svnserver.config.serializer.ConfigType;
 
 /**
@@ -18,6 +24,9 @@ import svnserver.config.serializer.ConfigType;
 @SuppressWarnings("FieldCanBeLocal")
 @ConfigType("ldapUsers")
 public final class LDAPUserDBConfig implements UserDBConfig {
+
+  @NotNull
+  private static final Logger log = LoggerFactory.getLogger(LDAPUserDBConfig.class);
 
   /**
    * This is a URL whose format is defined by the JNDI provider.
@@ -37,7 +46,7 @@ public final class LDAPUserDBConfig implements UserDBConfig {
    * The type of authentication to use.
    */
   @NotNull
-  private String authentication = "DIGEST-MD5";
+  private AuthMode authentication = AuthMode.DigestMD5;
   /**
    * The search scope. Set to <code>true</code> if you wish to search the entire subtree rooted at the
    * <code>userBase</code> entry. The default value of <code>false</code> requests a single-level search
@@ -73,9 +82,14 @@ public final class LDAPUserDBConfig implements UserDBConfig {
   public String getContextFactory() {
     return contextFactory;
   }
+
   @NotNull
-  public String getAuthentication() {
+  public AuthMode getAuthentication() {
     return authentication;
+  }
+
+  public void setAuthentication(@NotNull AuthMode authentication) {
+    this.authentication = authentication;
   }
 
   public boolean isUserSubtree() {
@@ -113,5 +127,26 @@ public final class LDAPUserDBConfig implements UserDBConfig {
   @Override
   public UserDB create() {
     return new LDAPUserDB(this);
+  }
+
+  public static enum AuthMode {
+    DigestMD5 {
+      @NotNull
+      @Override
+      public Authenticator create(@NotNull LDAPUserDBConfig config, @NotNull PasswordChecker passwordChecker) {
+        return new ProxyDigestMD5Authenticator(config);
+      }
+    },
+    PLAIN {
+      @NotNull
+      @Override
+      public Authenticator create(@NotNull LDAPUserDBConfig config, @NotNull PasswordChecker passwordChecker) {
+        log.warn("Warning, using unsafe PLAIN authentication, it transmits passwords in clear-text. Consider using " + DigestMD5.name());
+        return new PlainAuthenticator(passwordChecker);
+      }
+    };
+
+    @NotNull
+    public abstract Authenticator create(@NotNull LDAPUserDBConfig config, @NotNull PasswordChecker passwordChecker);
   }
 }

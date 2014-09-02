@@ -19,6 +19,7 @@ import org.apache.directory.server.core.api.partition.Partition;
 import org.apache.directory.server.core.api.schema.SchemaPartition;
 import org.apache.directory.server.core.partition.impl.avl.AvlPartition;
 import org.apache.directory.server.ldap.LdapServer;
+import org.apache.directory.server.ldap.handlers.extended.WhoAmIHandler;
 import org.apache.directory.server.ldap.handlers.sasl.digestMD5.DigestMd5MechanismHandler;
 import org.apache.directory.server.protocol.shared.store.LdifFileLoader;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
@@ -70,6 +71,7 @@ public final class EmbeddedDirectoryServer implements AutoCloseable {
 
     ldapServer = new LdapServer();
     ldapServer.setSaslHost(HOST);
+    ldapServer.addExtendedOperationHandler(new WhoAmIHandler());
     ldapServer.setSearchBaseDn(dn);
     ldapServer.setTransports(new TcpTransport(HOST, 10389));
     ldapServer.addSaslMechanismHandler(SupportedSaslMechanisms.DIGEST_MD5, new DigestMd5MechanismHandler());
@@ -105,12 +107,13 @@ public final class EmbeddedDirectoryServer implements AutoCloseable {
     return new EmbeddedDirectoryServer("dc=example,dc=com", EmbeddedDirectoryServer.class.getResource("ldap.ldif"));
   }
 
-  public UserDBConfig createUserConfig() throws Exception {
+  public UserDBConfig createUserConfig(@NotNull LDAPUserDBConfig.AuthMode authMode) throws Exception {
     final LDAPUserDBConfig config = new LDAPUserDBConfig();
     config.setConnectionUrl("ldap://" + ldapServer.getSaslHost() + ":" + ldapServer.getPort() + "/" + baseDn.getName());
     config.setUserSearch("(uid={0})");
     config.setUserSubtree(true);
     config.setNameAttribute("givenName");
+    config.setAuthentication(authMode);
     return config;
   }
 }
