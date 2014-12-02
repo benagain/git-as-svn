@@ -65,6 +65,7 @@ tasks.withType(JavaCompile) {
 
 test {
   useTestNG()
+  ignoreFailures = "$testIgnoreFailures".toBoolean()
 }
 
 jar {
